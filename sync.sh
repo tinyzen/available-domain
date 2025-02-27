@@ -17,7 +17,8 @@ pip_install_predeldomain() {
 }
 
 check_cn() {
-    predeldomain --length 4 --mode 3 --suffix cn --type text --whois whois
+    # GitHub Actions 无法使用 whois
+    predeldomain --length 4 --mode 3 --suffix cn --type text --whois isp
 }
 
 check_top() {
