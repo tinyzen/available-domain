@@ -4,93 +4,138 @@ set -euo pipefail
 
 export TZ=Asia/Shanghai
 
-TEMP_DIR="/tmp/predomain"
+LOG_DIR="$(pwd)/logs"
+DAILY_PATH="$(pwd)/daily"
+
 DATE_1=$(date +"%Y%m%d")
 DATE_2=$(date +"%Y-%m-%d")
 DATETIME=$(date +"%Y-%m-%d %H:%M:%S")
 
-DAILY_PATH="daily"
 DAILY_DAY_PATH="${DAILY_PATH}/${DATE_1}"
+
+SUB_README_PATH="${DAILY_PATH}/README.md"
 
 pip_install_predeldomain() {
     pip install git+https://github.com/idevsig/predeldomain.git
 }
 
-check_cn() {
+check_cn_4_3() {
     # GitHub Actions 无法使用 whois
-    predeldomain --length 4 --mode 3 --suffix cn --type text --whois isp
+    predeldomain --length 4 --mode 3 --suffix cn --type text --whois zzidc
 }
 
-check_top() {
+check_cn_3_1() {
+    # GitHub Actions 无法使用 whois
+    predeldomain --length 3 --mode 1 --suffix cn --type text --whois zzidc
+}
+
+check_top_4_3() {
     predeldomain --length 4 --mode 3 --suffix top --type text --whois nic
 }
 
-progress() {
-    suffix="$1"
-    echo "suffix: $suffix"
+check_top_3_1() {
+    predeldomain --length 3 --mode 1 --suffix top --type text --whois nic
+}
 
-    TODAY_LOG="${TEMP_DIR}/${suffix}_${DATE_2}.log"
-    target_file="${DAILY_DAY_PATH}.${suffix}.md"
+update_today() {
+    suffix="$1"
+
+    TODAY_LOG="${suffix}_${DATE_2}.log"
+
     if [[ -f "$TODAY_LOG" ]]; then
+        TARGET_FILE="${DAILY_DAY_PATH}.${suffix}.md"
+        if [[ ! -f "$TARGET_FILE" ]]; then
+            touch "$TARGET_FILE"
+        fi
+
         {
-            echo ""
+            echo
             echo "## 今日可注册的 \`$suffix\`" 
-            echo "" 
+            echo ">"
 
             cat "$TODAY_LOG"
-        } > "$target_file"
-
-        cat "$target_file" >> "$DAILY_DAY_PATH.md"
+            echo
+        } >> "$TARGET_FILE"
     fi
 }
 
-progress_next() {
+update_next() {
     suffix="$1"
-    echo "suffix: $suffix"
 
-    NEXT_LOG="${TEMP_DIR}/${suffix}_${DATE_2}_next.log"
+    NEXT_LOG="${suffix}_${DATE_2}_next.log"
     if [[ -f "$NEXT_LOG" ]]; then
-        target_file="${DAILY_PATH}/next.${suffix}.md"
+        TARGET_FILE="${DAILY_PATH}/next.${suffix}.md"
+        if [[ ! -f "$TARGET_FILE" ]]; then
+            touch "$TARGET_FILE"
+        fi
         
-        cp "$NEXT_LOG" "$target_file"
-        sed -i -e "/明天过期/c\## 明天过期" \
-            -e "/明天以后过期/c\## 明天以后过期" "$target_file"
+        cat "$NEXT_LOG" >>"$TARGET_FILE"
+        echo "" >> "$TARGET_FILE"
     fi
+}
+
+update_log() {
+    # 添加前缀和后缀
+    # sed -i 's/^/- /' "$TEMP_DIR"/*.log
+    sed -i 's/$/   /' ./*.log    
+}
+
+progress() {
+    if [[ -d "$LOG_DIR" ]]; then
+        rm -rf "$LOG_DIR"
+    fi
+    mkdir -p "$LOG_DIR"
+    
+    pushd "$LOG_DIR" > /dev/null 2>&1
+        rm -rf "$DAILY_DAY_PATH"*
+        rm -rf "${DAILY_PATH}/next"*
+    
+        check_cn_3_1
+        update_log
+        update_today "cn"
+        update_next "cn"
+
+        check_cn_4_3
+        update_log
+        update_today "cn"
+        update_next "cn"
+
+
+        check_top_3_1
+        update_log
+        update_today "top"
+        update_next "top"
+
+        check_top_4_3
+        update_log
+        update_today "top"
+        update_next "top"
+
+        cat "$DAILY_DAY_PATH.cn.md" "$DAILY_DAY_PATH.top.md" > "$DAILY_DAY_PATH.md"
+        cat "$DAILY_DAY_PATH.md" >> "$SUB_README_PATH"
+    popd > /dev/null 2>&1
+
+    sed -i -e "/明天过期/c\## 明天过期\n>" \
+        -e "/明天以后过期/c\## 明天以后过期\n>" "${DAILY_PATH}/next"*.md 
+
 }
 
 main() {
     pip_install_predeldomain
 
-    mkdir -p "$TEMP_DIR"
-    pushd "$TEMP_DIR" > /dev/null 2>&1
-        check_top
-
-        check_cn
-
-        # 添加前缀和后缀
-        # sed -i 's/^/- /' ./*.log
-        sed -i 's/$/   /' ./*.log
-    popd > /dev/null 2>&1
-
-    if [[ -f "README.md" ]]; then
+    if [[ -e "README.md" ]]; then
         rm "README.md"
     fi
 
-    cp template.md "$DAILY_DAY_PATH.md"
-    ln -s "$DAILY_DAY_PATH.md" README.md
+    # 复制模板
+    cp template.md "$SUB_README_PATH"
+    ln -s "daily/README.md" README.md
 
-    sed -i "s#{DAY}#${DATE_2}#" "$DAILY_DAY_PATH.md"
-    sed -i "s#{lastmod}#${DATETIME}#" "$DAILY_DAY_PATH.md"
+    # 更新时间
+    sed -i "s#{DAY}#${DATE_2}#" "$SUB_README_PATH"
+    sed -i "s#{lastmod}#${DATETIME}#" "$SUB_README_PATH"
 
-    progress cn
-    progress_next cn
-    
-    progress top
-    progress_next top
-
-    if [[ -f "$DAILY_DAY_PATH.md" ]]; then
-        cp "$DAILY_DAY_PATH.md" "$DAILY_PATH/README.md"
-    fi
+    progress 
 }
 
 main "$@"

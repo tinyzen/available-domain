@@ -33,6 +33,9 @@ jobs:
   # Build job
   check:
     runs-on: ubuntu-latest
+    env:
+      LARK_TOKEN: ${{ secrets.LARK_TOKEN }}
+      LARK_SECRET: ${{ secrets.LARK_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,6 +71,7 @@ jobs:
 
   # Deployment job
   deploy:
+    if: github.ref == 'refs/heads/main' && success()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
