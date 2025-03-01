@@ -1,1 +1,1 @@
-daily/20250228.md
+/home/runner/work/available-domain/available-domain/daily/README.md
