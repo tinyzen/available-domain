@@ -1,1 +1,1 @@
-/home/runner/work/available-domain/available-domain/daily/README.md
+daily/README.md
