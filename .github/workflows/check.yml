@@ -46,6 +46,12 @@ jobs:
         run: sudo apt update && sudo apt install -y whois        
       - name: Run check domain
         run: |
+          DAILY_DAY_PATH="daily/$(date +%Y%m%d).md"
+          if [ -f "$DAILY_DAY_PATH" ]; then
+            echo "今日已更新"
+            exit 0
+          fi
+
           bash sync.sh
 
       - name: Commit changes

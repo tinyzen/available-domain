@@ -121,11 +121,6 @@ progress() {
 }
 
 main() {
-    if [[ -f "$DAILY_DAY_PATH.md" ]]; then
-        echo "今日已更新"
-        exit 0
-    fi
-
     pip_install_predeldomain
 
     if [[ -e "README.md" ]]; then
