@@ -111,6 +111,9 @@ progress() {
         update_today "top"
         update_next "top"
 
+        [[ -f "$DAILY_DAY_PATH.cn.md" ]] || touch "$DAILY_DAY_PATH.cn.md"
+        [[ -f "$DAILY_DAY_PATH.top.md" ]] || touch "$DAILY_DAY_PATH.top.md"
+
         cat "$DAILY_DAY_PATH.cn.md" "$DAILY_DAY_PATH.top.md" > "$DAILY_DAY_PATH.md"
         cat "$DAILY_DAY_PATH.md" >> "$SUB_README_PATH"
     popd > /dev/null 2>&1
