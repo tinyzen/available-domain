@@ -123,6 +123,20 @@ progress() {
 
 }
 
+history() {
+    pushd "$DAILY_PATH" > /dev/null 2>&1
+        # 列出所有的历史文件，写入 history.md 文件
+        echo "# 历史记录" > history.md
+        # grep -E '^[0-9]+\.md$' | sort -r | awk '{print "- [" $1 "](" $1 ")"}' > history.md
+        # ls | grep -E '^[0-9]+\.md$' | sort -r | awk '{sub(/\.md$/, "", $1); print "- [" $1 "](" $1 ".md)"}' > history.md
+        for file in [0-9]*.md; do 
+            if [[ $file =~ ^[0-9]+\.md$ ]]; then
+                echo "- [${file%.md}]($file)"
+            fi
+        done | sort -r >> history.md
+    popd > /dev/null 2>&1
+}
+
 main() {
     pip_install_predeldomain
 

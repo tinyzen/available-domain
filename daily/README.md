@@ -9,7 +9,8 @@
 |`.top`|字母|4|
 |`.top`|三杂|3|
 
-> **[明天过期的 CN](next.cn.md) ● [明天过期的 TOP](next.top.md)**
+> **[明天过期的 CN](next.cn.md) ● [明天过期的 TOP](next.top.md)**   
+> **[历史列表](history.md)**
 
 
 ## 今日可注册的 `cn`
