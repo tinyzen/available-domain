@@ -129,12 +129,82 @@ history() {
         echo "# 历史记录" > history.md
         # grep -E '^[0-9]+\.md$' | sort -r | awk '{print "- [" $1 "](" $1 ")"}' > history.md
         # ls | grep -E '^[0-9]+\.md$' | sort -r | awk '{sub(/\.md$/, "", $1); print "- [" $1 "](" $1 ".md)"}' > history.md
-        for file in [0-9]*.md; do 
+        for file in [0-9]*.md; do
             if [[ $file =~ ^[0-9]+\.md$ ]]; then
                 echo "- [${file%.md}]($file)"
             fi
         done | sort -r >> history.md
     popd > /dev/null 2>&1
+}
+
+# 每月1号打 tag 并删除上月数据
+monthly_tag_and_cleanup() {
+    local current_day
+    current_day=$(date +"%d")
+
+    # 只在每月1号执行
+    if [[ "$current_day" != "01" ]]; then
+        return 0
+    fi
+
+    # 获取上个月的年月
+    local last_month
+    last_month=$(date -d "last month" +"%Y-%m")
+    local last_month_name
+    last_month_name=$(date -d "last month" +"%Y年%m月")
+
+    # 上个月的日期范围
+    local first_day last_day
+    first_day=$(date -d "last month" +"%Y%m01")
+    last_day=$(date -d "$(date +"%Y-%m-01") -1 day" +"%Y%m%d")
+
+    local tag_name="daily-${last_month}"
+
+    echo "正在处理 ${last_month_name} 的 daily 文件..."
+
+    # Git 操作 - 先提交当前状态并打 tag
+    pushd "$(pwd)" > /dev/null 2>&1
+        git add -A
+        git commit -m "Auto-sync by sync.sh" --allow-empty || true
+
+        # 创建并推送 tag
+        if git tag -l | grep -q "^${tag_name}$"; then
+            echo "Tag ${tag_name} 已存在，跳过"
+        else
+            git tag -a "$tag_name" -m "${last_month_name} Daily"
+            echo "已创建 tag: ${tag_name}"
+        fi
+
+        git push origin main
+        git push origin "$tag_name" 2>/dev/null || true
+    popd > /dev/null 2>&1
+
+    echo "Tag ${tag_name} 已推送"
+
+    # 删除上个月的 daily 文件
+    echo "正在删除 ${last_month_name} 的 daily 文件..."
+    for file in "${DAILY_PATH}"/[0-9]*.md; do
+        if [[ -f "$file" ]]; then
+            local filename
+            filename=$(basename "$file" .md)
+            if [[ "$filename" -ge "$first_day" && "$filename" -le "$last_day" ]]; then
+                rm -f "$file"
+                echo "已删除: $file"
+            fi
+        fi
+    done
+
+    # 更新历史记录
+    history
+
+    # 提交删除操作
+    pushd "$(pwd)" > /dev/null 2>&1
+        git add -A
+        git commit -m "删除 ${last_month_name} 的 daily 数据"
+        git push origin main
+    popd > /dev/null 2>&1
+
+    echo "${last_month_name} 数据已清理完成！"
 }
 
 main() {
@@ -152,7 +222,10 @@ main() {
     sed -i "s#{DAY}#${DATE_2}#" "$SUB_README_PATH"
     sed -i "s#{lastmod}#${DATETIME}#" "$SUB_README_PATH"
 
-    progress 
+    progress
+
+    # 每月1号打 tag 并删除上月数据
+    monthly_tag_and_cleanup
 }
 
 main "$@"
