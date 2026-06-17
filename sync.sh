@@ -216,7 +216,7 @@ main() {
 
     # 复制模板
     cp template.md "$SUB_README_PATH"
-    ln -s "daily/README.md" README.md
+    ln -sf "daily/README.md" README.md
 
     # 更新时间
     sed -i "s#{DAY}#${DATE_2}#" "$SUB_README_PATH"
